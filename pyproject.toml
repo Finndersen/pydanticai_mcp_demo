@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp_demo"
+version = "0.1.0"
+description = "A short description of your project"
+requires-python = ">=3.12"
+authors = [{ name = "Your Name", email = "your.email@example.com" }]
+dependencies = [
+    "pydantic",
+    "pydantic-ai[logfire]",
+    "pydantic-ai-slim[duckduckgo]",
+    "rich",
+    "python-dotenv",
+    "mcp[cli]>=1.3.0",
+]
+
+[project.scripts]
+dev = "mcp_demo.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-cov", "ruff", "pyright"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "W"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+
+[tool.pyright]
+include = ["src"]
+exclude = ["**/__pycache__", "**/.venv"]
+typeCheckingMode = "basic"
+useLibraryCodeForTypes = true
+reportMissingImports = true
+reportMissingTypeStubs = false
+pythonVersion = "3.12"
+pythonPlatform = "Darwin"
