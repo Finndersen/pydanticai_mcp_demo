@@ -1,6 +1,3 @@
-from dataclasses import dataclass
-import os
-
 from mcp.types import CallToolResult
 from pydantic_ai.models import Model
 from pydantic_ai.messages import ModelMessage
@@ -9,12 +6,12 @@ from rich.console import Console
 from rich.prompt import Prompt
 
 from mcp_demo.agent import get_agent
-from mcp_demo.commands import EXIT_COMMANDS, handle_special_command
 from mcp_demo.deps import AgentDeps
 from mcp import ClientSession, StdioServerParameters, Tool as MCPTool
 from mcp.client.stdio import stdio_client
 
-from mcp_demo.tools import get_tools
+
+EXIT_COMMANDS = ["/quit", "/exit", "/q"]
 
 
 async def run(model: Model, working_directory: str):

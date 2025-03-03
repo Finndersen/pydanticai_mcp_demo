@@ -2,6 +2,7 @@ import inspect
 import types
 from typing import Any, Dict
 
+from mcp.types import CallToolResult
 from pydantic_ai import RunContext, Tool
 from mcp import Tool as MCPTool
 from mcp import ClientSession
@@ -34,11 +35,13 @@ def create_function_from_schema(session: ClientSession, name: str, schema: Dict[
     properties = schema.get("properties", {})
     required = schema.get("required", [])
     
-    # Create parameter list
-    parameters = []
+    # Create parameter list (initially contains only the run context parameter)
+    parameters: list[inspect.Parameter] = [inspect.Parameter(
+                    name="ctx",
+                    kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    annotation=RunContext[AgentDeps]
+                )]
     param_annotations = {}
-    
-
     
     for param_name, param_info in properties.items():
         param_type = TYPE_MAP.get(param_info.get("type", "string"), Any)
@@ -68,16 +71,19 @@ def create_function_from_schema(session: ClientSession, name: str, schema: Dict[
     sig = inspect.Signature(parameters=parameters)
     
     # Create function body
-    async def function_body(ctx: RunContext[AgentDeps], **kwargs):
+    async def function_body(ctx: RunContext[AgentDeps], **kwargs) -> CallToolResult:
         bound_args = sig.bind(**kwargs)
         bound_args.apply_defaults()
         ctx.deps.console.print(f"[blue]Calling tool[/blue] [bold]{name}[/bold] with arguments:")
         ctx.deps.console.print(bound_args.kwargs)
         # Call the MCP tool
-        reuslt = await session.call_tool(name, arguments=bound_args.kwargs)
-        ctx.deps.console.print(f"[green]Tool[/green] [bold]{name}[/bold] returned:")
-        ctx.deps.console.print(reuslt)
-        return reuslt
+        result = await session.call_tool(name, arguments=bound_args.kwargs)
+        if result.isError:
+            raise Exception(f"[red]Tool {name} returned an error:[/red]")
+        else:
+            ctx.deps.console.print(f"[green]Tool[/green] [bold]{name}[/bold] returned:")
+        ctx.deps.console.print(result)
+        return result
         
     
     # Create the function with the correct signature

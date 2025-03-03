@@ -2,7 +2,7 @@ from typing import Protocol
 
 from mcp_demo.agent import AgentRunner
 
-EXIT_COMMANDS = ["/quit", "/exit", "/q"]
+
 
 
 class CommandHandler(Protocol):
