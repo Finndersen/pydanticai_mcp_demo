@@ -28,10 +28,12 @@ class LLMResponse(BaseModel):
 async def get_agent(model: Model, deps: AgentDeps, session: ClientSession) -> Agent[AgentDeps, LLMResponse]:
 
     tools = await get_tools(session)
+    prompt = get_system_prompt(deps.current_working_directory)
+    print(prompt)
     agent = Agent(
         model=model,
         deps_type=type(deps),
-        system_prompt=get_system_prompt(deps.current_working_directory),
+        system_prompt=prompt,
         result_type=LLMResponse,
         tools=tools,
     )

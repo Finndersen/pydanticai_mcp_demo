@@ -41,11 +41,9 @@ def create_function_from_schema(session: ClientSession, name: str, schema: Dict[
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                     annotation=RunContext[AgentDeps]
                 )]
-    param_annotations = {}
     
     for param_name, param_info in properties.items():
         param_type = TYPE_MAP.get(param_info.get("type", "string"), Any)
-        param_annotations[param_name] = param_type
         
         # Required parameters don't have default values
         if param_name in required:
@@ -72,14 +70,13 @@ def create_function_from_schema(session: ClientSession, name: str, schema: Dict[
     
     # Create function body
     async def function_body(ctx: RunContext[AgentDeps], **kwargs) -> CallToolResult:
-        bound_args = sig.bind(**kwargs)
-        bound_args.apply_defaults()
-        ctx.deps.console.print(f"[blue]Calling tool[/blue] [bold]{name}[/bold] with arguments:")
-        ctx.deps.console.print(bound_args.kwargs)
+        # bound_args = sig.bind(ctx, **kwargs)
+        # bound_args.apply_defaults()
+        ctx.deps.console.print(f"[blue]Calling tool[/blue] [bold]{name}[/bold] with arguments: {kwargs}")
         # Call the MCP tool
-        result = await session.call_tool(name, arguments=bound_args.kwargs)
+        result = await session.call_tool(name, arguments=kwargs)
         if result.isError:
-            raise Exception(f"[red]Tool {name} returned an error:[/red]")
+            ctx.deps.console.print(f"[red]Tool {name} returned an error:[/red]")
         else:
             ctx.deps.console.print(f"[green]Tool[/green] [bold]{name}[/bold] returned:")
         ctx.deps.console.print(result)
@@ -97,7 +94,7 @@ def create_function_from_schema(session: ClientSession, name: str, schema: Dict[
     
     # Add signature and annotations
     dynamic_function.__signature__ = sig    # type: ignore
-    dynamic_function.__annotations__ = param_annotations
+    dynamic_function.__annotations__ = {param.name: param.annotation for param in parameters}
     
     return dynamic_function
 

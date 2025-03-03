@@ -15,7 +15,7 @@ def main():
     """Command-line interface for mcp_demo."""
     parser = argparse.ArgumentParser(description="Run an AI development assistant with a specified LLM model.")
 
-    parser.add_argument("--working_directory", type=str, help="Working directory to use for the assistant", default=os.getcwd())
+    parser.add_argument("working_directory", type=str, help="Working directory to use for the assistant", default=os.getcwd(), nargs="?")
 
     parser.add_argument(
         "--model",
