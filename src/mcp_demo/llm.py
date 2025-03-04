@@ -1,4 +1,3 @@
-"""Fix pyright type errors in llm.py"""
 import os
 import time
 from pathlib import Path
@@ -50,16 +49,15 @@ def build_model_from_name_and_api_key(model_name: KnownModelName | None, api_key
     Build a model from a model name and API key.
     If no model name is provided, will try to infer from environment variables.
     """
-
-    # Load environment variables from .env files
-    # Try loading from home directory first, then current directory
-    env_paths = [Path.home() / ".env", Path.cwd() / ".env"]
-
-    for env_path in env_paths:
-        if env_path.exists():
-            load_dotenv(env_path)
-
     if not model_name:
+        # Load environment variables from .env files
+        # Try loading from home directory first, then current directory
+        env_paths = [Path.home() / ".env", Path.cwd() / ".env"]
+
+        for env_path in env_paths:
+            if env_path.exists():
+                load_dotenv(env_path)
+            
         if os.environ.get("OPENAI_API_KEY"):
             logfire.info("Detected OPENAI_API_KEY, using openai:gpt-4o")
             model_name = "openai:gpt-4o"
@@ -89,6 +87,7 @@ def build_model_from_name_and_api_key(model_name: KnownModelName | None, api_key
     elif isinstance(model_name, str) and model_name.startswith("mistral-"):
         model_name = f"mistral:{model_name}"
 
+    # api-key may be None still, but will be inferred from environment variables when initialising the model
     if isinstance(model_name, str) and model_name.startswith("openai:"):
         from pydantic_ai.models.openai import OpenAIModel
 
@@ -117,8 +116,8 @@ def build_model_from_name_and_api_key(model_name: KnownModelName | None, api_key
             from pydantic_ai.models.ollama import OllamaModel
 
             return OllamaModel(model_name[7:], api_key=api_key or "ollama")
-        except ImportError:
-            raise ImportError("OllamaModel could not be imported. Ensure pydantic-ai[ollama] is installed.")
+        except ImportError as e:
+            raise ImportError("OllamaModel could not be imported. Ensure pydantic-ai[ollama] is installed.") from e
 
     else:
         raise ValueError(f"Unsupported model name: {model_name}")

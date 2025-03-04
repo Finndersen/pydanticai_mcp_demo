@@ -19,8 +19,8 @@ lint:
 
 # Format code
 format:
-	ruff check . --fix
 	ruff format .
+	ruff check . --fix
 
 # Run tests with coverage
 test:

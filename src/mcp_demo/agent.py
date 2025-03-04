@@ -1,11 +1,9 @@
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated, AsyncIterator
+from typing import Annotated
 
 from mcp import ClientSession
 from pydantic import BaseModel
 from pydantic_ai import Agent
-from pydantic_ai.messages import ModelMessage
 from pydantic_ai.models import Model
 
 from mcp_demo.deps import AgentDeps
@@ -24,12 +22,9 @@ class LLMResponse(BaseModel):
     ]
 
 
-
 async def get_agent(model: Model, deps: AgentDeps, session: ClientSession) -> Agent[AgentDeps, LLMResponse]:
-
     tools = await get_tools(session)
     prompt = get_system_prompt(deps.current_working_directory)
-    print(prompt)
     agent = Agent(
         model=model,
         deps_type=type(deps),
@@ -51,8 +46,9 @@ whos purpose is to help the user with their software development or general file
 
 * If the user request is unclear, ambigious or invalid, ask clarifying questions.
 * Use the tools provided to obtain any information or perform any actions necessary to complete the user's request.
-* If you have completed the users request and have no further questions to ask, set the `end_conversation` field to `True`.
-* Don't assume what type of project the user is working on if it is not evident from the request. Use the available tools or ask to find out if required.
+* If you have completed the users request and have no more questions to ask, set the `end_conversation` field to `True`.
+* Don't assume what type of project the user is working on if it is not evident from the request.
+    Use the available tools or ask to find out if required.
 
 
 # EXAMPLE BEHAVIOUR
@@ -69,9 +65,11 @@ Directory listing:
 """
 
 
-def get_system_prompt(current_working_directory: str) -> str:
+def get_system_prompt(current_working_directory: Path) -> str:
     directory_listing = "\n".join(
-        sorted([p.name + "/" for p in Path(current_working_directory).iterdir() if p.is_dir()]) +
-        sorted([p.name for p in Path(current_working_directory).iterdir() if not p.is_dir()])
+        sorted([p.name + "/" for p in current_working_directory.iterdir() if p.is_dir()])
+        + sorted([p.name for p in current_working_directory.iterdir() if not p.is_dir()])
     )
-    return PROMPT_TEMPLATE.format(current_working_directory=current_working_directory, directory_listing=directory_listing)
+    return PROMPT_TEMPLATE.format(
+        current_working_directory=str(current_working_directory), directory_listing=directory_listing
+    )
