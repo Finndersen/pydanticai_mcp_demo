@@ -57,7 +57,7 @@ def build_model_from_name_and_api_key(model_name: KnownModelName | None, api_key
         for env_path in env_paths:
             if env_path.exists():
                 load_dotenv(env_path)
-            
+
         if os.environ.get("OPENAI_API_KEY"):
             logfire.info("Detected OPENAI_API_KEY, using openai:gpt-4o")
             model_name = "openai:gpt-4o"

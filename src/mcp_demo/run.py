@@ -1,12 +1,11 @@
 from pathlib import Path
+
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.models import Model
 from rich.console import Console
 from rich.prompt import Prompt
-
-import readline
 
 from mcp_demo.agent import get_agent
 from mcp_demo.deps import AgentDeps
@@ -19,11 +18,15 @@ async def run(model: Model, working_directory: Path):
     # Create server parameters for stdio connection
     server_params = StdioServerParameters(
         command="npx",  # Executable
-        args=["-y", "@modelcontextprotocol/server-filesystem", str(working_directory)],  # Optional command line arguments
+        args=[
+            "-y",
+            "@modelcontextprotocol/server-filesystem",
+            str(working_directory),
+        ],  # Optional command line arguments
         env=None,  # Optional environment variables
     )
-    
-    console=Console()
+
+    console = Console()
 
     deps = AgentDeps(console=console, current_working_directory=working_directory)
 
@@ -64,17 +67,16 @@ async def run(model: Model, working_directory: Path):
                     continue
 
                 # Process normal input through the agent
-                try:
-                    result = await agent.run(prompt, deps=deps, message_history=message_history)
-                    response = result.data
+                result = await agent.run(prompt, deps=deps, message_history=message_history)
+                response = result.data
 
-                    console.print(f"[bold green]Agent:[/bold green] {response.message}")
+                console.print(f"[bold green]Agent:[/bold green] {response.message}")
 
-                    # Exit if LLM indicates conversation is over
-                    if response.end_conversation:
-                        console.print("[yellow]Agent indicated the conversation is complete. Exiting...[/yellow]")
-                        break
-                except Exception as e:
-                    console.print(f"[bold red]Error:[/bold red] {str(e)}")
+                # Exit if LLM indicates conversation is over
+                if response.end_conversation:
+                    console.print("[yellow]Agent indicated the conversation is complete. Exiting...[/yellow]")
+                    break
+
+                message_history = result.all_messages()
 
             console.print("[bold cyan]Thank you for using MCP Demo CLI![/bold cyan]")

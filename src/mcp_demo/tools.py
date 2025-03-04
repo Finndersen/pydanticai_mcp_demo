@@ -1,16 +1,15 @@
 import inspect
-import json
 import types
 from typing import Any, Dict
-import git
-from pathlib import Path
 
 from mcp import ClientSession
 from mcp import Tool as MCPTool
-from mcp.types import CallToolResult, TextContent
+from mcp.types import TextContent
 from pydantic_ai import RunContext, Tool
 
 from mcp_demo.deps import AgentDeps
+from util.filter_ignored_files import filter_ignored_files
+from util.schema_to_params import convert_schema_to_params
 
 
 async def get_tools(session: ClientSession) -> list[Tool[AgentDeps]]:
@@ -29,79 +28,48 @@ def pydantic_tool_from_mcp_tool(session: ClientSession, tool: MCPTool) -> Tool[A
     return Tool(name=tool.name, description=tool.description, function=tool_function, takes_ctx=True)
 
 
-# Map JSON schema types to Python types
-TYPE_MAP = {
-    "string": str,
-    "integer": int,
-    "number": float,
-    "boolean": bool,
-    "array": list,
-    "object": dict,
-    "null": type(None),
-}
-
-
 def create_function_from_schema(session: ClientSession, name: str, schema: Dict[str, Any]) -> types.FunctionType:
     """
-    Create a function with a signature based on a JSON schema.
+    Create a function with a signature based on a JSON schema. This is necessary because PydanticAI does not yet
+    support providing a tool JSON schema directly.
 
     Args:
+        session: The MCP client session
+        name: Name for the generated function
         schema: A JSON schema describing the function parameters
-        function_name: Name for the generated function
 
     Returns:
         A dynamically created function with the appropriate signature
     """
     print(f"Creating '{name}' function from schema: {schema}")
-    # Extract properties from schema
-    properties = schema.get("properties", {})
-    required = schema.get("required", [])
 
-    # Create parameter list (initially contains only the run context parameter)
-    parameters: list[inspect.Parameter] = [
-        inspect.Parameter(name="ctx", kind=inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=RunContext[AgentDeps])
-    ]
-
-    for param_name, param_info in properties.items():
-        param_type = TYPE_MAP.get(param_info.get("type", "string"), Any)
-        
-        if param_type is list:
-            list_subtype = param_info.get("items", {}).get("type", "string")
-            param_type = list[TYPE_MAP.get(list_subtype, Any)]
-            
-
-        # Required parameters don't have default values
-        if param_name in required:
-            parameters.append(
-                inspect.Parameter(name=param_name, kind=inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=param_type)
-            )
-        else:
-            # Optional parameters get a default value of None
-            parameters.append(
-                inspect.Parameter(
-                    name=param_name, kind=inspect.Parameter.POSITIONAL_OR_KEYWORD, default=None, annotation=param_type
-                )
-            )
+    # Create parameter list from tool schema
+    parameters = convert_schema_to_params(schema)
 
     # Create the signature
     sig = inspect.Signature(parameters=parameters)
 
     # Create function body
-    async def function_body(ctx: RunContext[AgentDeps], **kwargs) -> CallToolResult:
+    async def function_body(ctx: RunContext[AgentDeps], **kwargs) -> str:
         ctx.deps.console.print(f"[blue]Calling tool[/blue] [bold]{name}[/bold] with arguments: {kwargs}")
-        # Call the MCP tool
+
+        # Call the MCP tool with provided arguments
         result = await session.call_tool(name, arguments=kwargs)
+
         if result.isError:
             ctx.deps.console.print(f"[red]Tool {name} returned an error:[/red]")
         else:
             ctx.deps.console.print(f"[green]Tool[/green] [bold]{name}[/bold] returned:")
+            # Filter the result if the tool is a directory_tree tool
+            if name == "directory_tree":
+                result = filter_ignored_files(result, ctx.deps.current_working_directory)
+
         ctx.deps.console.print(result)
-        
-        # Filter the result if the tool is a directory_tree tool
-        if name == "directory_tree":
-            result = filter_ignored_files(result, ctx.deps)
-            
-        return result
+        # Return text for TextContent
+        if isinstance(result.content[0], TextContent):
+            return result.content[0].text
+        else:
+            raise ValueError("Expected TextContent, got ", type(result.content[0]))
 
     # Create the function with the correct signature
     dynamic_function = types.FunctionType(
@@ -117,44 +85,3 @@ def create_function_from_schema(session: ClientSession, name: str, schema: Dict[
     dynamic_function.__annotations__ = {param.name: param.annotation for param in parameters}
 
     return dynamic_function
-
-
-def filter_ignored_files(result: CallToolResult, deps: AgentDeps) -> CallToolResult:
-    """
-    Filter out files that match rules in .gitignore.
-    
-    Args:
-        result: The result of a "directory_tree" tool call
-        
-    Returns:
-        CallToolResult: The result of the tool call with ignored files filtered out
-    """
-    # Try to get git repo from current directory or parents
-    try:
-        repo = git.Repo(Path.cwd(), search_parent_directories=True)
-    except git.InvalidGitRepositoryError:
-        # Not in a git repo, return the original result
-        return result
-        
-    content = result.content[0]
-    if not isinstance(content, TextContent):
-        raise ValueError("Expected TextContent, got ", type(content))
-    
-    directory_tree = json.loads(content.text)
-    filtered_directory_tree = filter_directory(directory_tree, deps.current_working_directory, repo)
-    print("Filtered directory tree:", filtered_directory_tree)
-    content.text = json.dumps(filtered_directory_tree)
-    return result
-    
-
-def filter_directory(directory_tree: dict[str, Any], current_path: Path, repo: git.Repo) -> dict[str, Any]:
-    """
-    Filter out files that match rules in .gitignore.
-    """
-    children = [
-        filter_directory(item, current_path / item["name"], repo) if item["type"] == "directory" 
-        else item 
-        for item in directory_tree["children"] 
-        if not repo.ignored(current_path / item["name"])]
-    directory_tree["children"] = children
-    return directory_tree
