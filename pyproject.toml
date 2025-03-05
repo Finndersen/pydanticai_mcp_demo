@@ -26,7 +26,7 @@ dev = "mcp_demo.cli:main"
 dev = ["pytest", "pytest-cov", "ruff", "pyright"]
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["client"]
 
 [tool.ruff]
 line-length = 120
@@ -40,12 +40,8 @@ quote-style = "double"
 indent-style = "space"
 line-ending = "auto"
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = "test_*.py"
-
 [tool.pyright]
-include = ["src"]
+include = ["client"]
 exclude = ["**/__pycache__", "**/.venv"]
 typeCheckingMode = "basic"
 useLibraryCodeForTypes = true

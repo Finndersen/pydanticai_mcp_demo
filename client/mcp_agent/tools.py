@@ -7,9 +7,9 @@ from mcp import Tool as MCPTool
 from mcp.types import TextContent
 from pydantic_ai import RunContext, Tool
 
-from mcp_demo.deps import AgentDeps
-from util.filter_ignored_files import filter_directory_tree, filter_search_results
-from util.schema_to_params import convert_schema_to_params
+from mcp_agent.deps import AgentDeps
+from mcp_agent.util.filter_ignored_files import filter_directory_tree, filter_search_results
+from mcp_agent.util.schema_to_params import convert_schema_to_params
 
 
 async def get_tools(session: ClientSession) -> list[Tool[AgentDeps]]:

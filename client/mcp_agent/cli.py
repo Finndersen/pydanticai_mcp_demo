@@ -8,8 +8,8 @@ from pathlib import Path
 import logfire
 from rich.console import Console
 
-from mcp_demo.llm import build_model_from_name_and_api_key
-from mcp_demo.run import run
+from mcp_agent.llm import build_model_from_name_and_api_key
+from mcp_agent.run import run
 
 
 def main():

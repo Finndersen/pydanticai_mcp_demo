@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field, create_model
 from pydantic_ai import RunContext
 
-from mcp_demo.deps import AgentDeps
+from mcp_agent.deps import AgentDeps
 
 
 def convert_schema_to_params(schema: Dict[str, Any]) -> List[inspect.Parameter]:

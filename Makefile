@@ -1,4 +1,4 @@
-.PHONY: install lint format test clean compile typecheck
+.PHONY: install lint format clean compile run
 
 # Compile dependency lock files
 compile:
@@ -9,19 +9,18 @@ compile:
 install:
 	uv pip install -r requirements-dev.txt
 	uv pip install -e .
-	@echo "Installation complete. You can now run 'dev' command."
+	cd server && npm install
 
-# Run linting checks
+# Run linting checks for agent client
 lint:
-	ruff check .
-	ruff format . --check
+	ruff check client
+	ruff format client --check
 	python -m pyright
 
-# Format code
+# Format code for agent client
 format:
-	ruff format .
-	ruff check . --fix
+	ruff format client
+	ruff check client --fix
 
-# Run tests with coverage
-test:
-	pytest --cov=src tests/
+run:
+	@PYTHONPATH=${PYTHONPATH}:${PWD}/client && python client/mcp_agent/cli.py

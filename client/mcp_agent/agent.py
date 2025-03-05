@@ -6,8 +6,8 @@ from pydantic import BaseModel
 from pydantic_ai import Agent
 from pydantic_ai.models import Model
 
-from mcp_demo.deps import AgentDeps
-from mcp_demo.tools import get_tools
+from mcp_agent.deps import AgentDeps
+from mcp_agent.tools import get_tools
 
 
 class LLMResponse(BaseModel):

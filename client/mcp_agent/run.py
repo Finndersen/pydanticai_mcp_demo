@@ -1,4 +1,5 @@
 from pathlib import Path
+import readline
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
@@ -7,8 +8,8 @@ from pydantic_ai.models import Model
 from rich.console import Console
 from rich.prompt import Prompt
 
-from mcp_demo.agent import get_agent
-from mcp_demo.deps import AgentDeps
+from mcp_agent.agent import get_agent
+from mcp_agent.deps import AgentDeps
 
 EXIT_COMMANDS = ["/quit", "/exit", "/q"]
 
@@ -19,8 +20,10 @@ async def run(model: Model, working_directory: Path):
     server_params = StdioServerParameters(
         command="npx",  # Executable
         args=[
-            "-y",
-            "@modelcontextprotocol/server-filesystem",
+            "tsx",
+            "server/index.ts",
+            # "-y",
+            # "@modelcontextprotocol/server-filesystem",
             str(working_directory),
         ],  # Optional command line arguments
         env=None,  # Optional environment variables
