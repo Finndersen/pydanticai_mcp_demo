@@ -1,4 +1,5 @@
 import json
+from os import path
 from pathlib import Path
 from typing import Literal, TypedDict
 
@@ -12,9 +13,9 @@ class DirectoryItem(TypedDict):
     children: list["DirectoryItem"]
 
 
-def filter_ignored_files(result: CallToolResult, working_directory: Path) -> CallToolResult:
+def filter_directory_tree(result: CallToolResult, working_directory: Path) -> CallToolResult:
     """
-    Filter out files that match rules in .gitignore.
+    Filter out directory tree entries that match rules in .gitignore.
 
     Args:
         result: The result of a "directory_tree" tool call
@@ -54,3 +55,33 @@ def filter_items(directory_items: list[DirectoryItem], current_path: Path, repo:
 def filter_directory_children(directory: DirectoryItem, current_path: Path, repo: git.Repo) -> DirectoryItem:
     directory["children"] = filter_items(directory["children"], current_path, repo)
     return directory
+
+
+def filter_search_results(result: CallToolResult) -> CallToolResult:
+    """
+    Filter out search results that match rules in .gitignore.
+    """
+    # Try to get git repo from current directory or parents
+    try:
+        repo = git.Repo(Path.cwd(), search_parent_directories=True)
+    except git.InvalidGitRepositoryError:
+        # Not in a git repo, return the original result
+        return result
+    
+    content = result.content[0]
+    if not isinstance(content, TextContent):
+        raise ValueError("Expected TextContent, got ", type(content))
+    
+    if not content.text:
+        return result
+
+    def check_for_venv(path: str) -> str:
+        if ".venv" in path:
+            print("Found .venv in search result: ", path)
+        return path
+
+    search_result_paths = content.text.splitlines()
+    filtered_search_result_paths = [path for path in search_result_paths if not repo.ignored(Path(check_for_venv(path)))]
+    content.text = "\n".join(filtered_search_result_paths)
+
+    return result
