@@ -62,9 +62,7 @@ def create_function_from_schema(session: ClientSession, name: str, schema: Dict[
         else:
             ctx.deps.console.print(f"[green]Tool[/green] [bold]{name}[/bold] returned:")
             # Filter the result if the tool is directory_tree
-            if name == "directory_tree":
-                result = filter_directory_tree(result, ctx.deps.current_working_directory)
-            elif name == "search_files":
+            if name == "search_files":
                 result = filter_search_results(result)
 
         ctx.deps.console.print(result)

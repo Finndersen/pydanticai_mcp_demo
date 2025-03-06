@@ -7,13 +7,16 @@ import {
   ListToolsRequestSchema,
   ToolSchema,
 } from "@modelcontextprotocol/sdk/types.js";
+import { createTwoFilesPatch } from 'diff';
+import { existsSync, readFileSync } from 'fs';
 import fs from "fs/promises";
-import path from "path";
+import ignore from 'ignore';
+import { minimatch } from 'minimatch';
 import os from 'os';
+import path from "path";
+import { simpleGit } from 'simple-git';
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { diffLines, createTwoFilesPatch } from 'diff';
-import { minimatch } from 'minimatch';
 
 // Command line argument parsing
 const args = process.argv.slice(2);
@@ -171,6 +174,41 @@ const server = new Server(
     },
   },
 );
+
+// Load gitignore patterns if a .gitignore file exists and return repo root if found
+async function loadGitignorePatterns(dirPath: string): Promise<{ ig: ignore.Ignore | null, repoRoot: string | null }> {
+  try {
+    // Create a new ignore instance
+    const ig = ignore();
+
+    // Try to find the Git repository root
+    let repoRoot = null;
+    // Initialize git with the target directory path
+    const git = simpleGit({ baseDir: dirPath });
+    const isRepo = await git.checkIsRepo();
+
+    if (isRepo) {
+      // Get the repository root
+      const rootDir = await git.revparse(['--show-toplevel']);
+      repoRoot = rootDir.trim();
+    } else if (existsSync(path.join(dirPath, '.gitignore'))) {
+      repoRoot = dirPath;
+    } else {
+      return { ig: null, repoRoot: null };
+    }
+
+    // Only consider the .gitignore in the repository root for simplicity
+    const rootGitignorePath = path.join(repoRoot, '.gitignore');
+    if (existsSync(rootGitignorePath)) {
+      const content = readFileSync(rootGitignorePath, 'utf8');
+      ig.add(content);
+      return { ig, repoRoot };
+    }
+  } catch (error) {
+    console.error('Error loading .gitignore:', error);
+    return { ig: null, repoRoot: null };
+  }
+}
 
 // Tool implementations
 async function getFileStats(filePath: string): Promise<FileInfo> {
@@ -542,20 +580,37 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           children?: TreeEntry[];
         }
 
+        // Load gitignore patterns for this directory
+        const { ig, repoRoot } = await loadGitignorePatterns(parsed.data.path);
+
         async function buildTree(currentPath: string): Promise<TreeEntry[]> {
           const validPath = await validatePath(currentPath);
           const entries = await fs.readdir(validPath, { withFileTypes: true });
           const result: TreeEntry[] = [];
 
           for (const entry of entries) {
+            // Skip .git directory
+            if (entry.name === '.git') {
+              continue;
+            }
+
+            // Check if the entry should be ignored based on gitignore patterns
+            const fullPath = path.join(validPath, entry.name);
+            // If we have a repo root, use it to calculate the relative path for gitignore checking
+            if (ig && repoRoot) {
+              const relativeToRepo = path.relative(repoRoot, fullPath);
+              if (ig.ignores(relativeToRepo)) {
+                continue;
+              }
+            }
+
             const entryData: TreeEntry = {
               name: entry.name,
               type: entry.isDirectory() ? 'directory' : 'file'
             };
 
             if (entry.isDirectory()) {
-              const subPath = path.join(currentPath, entry.name);
-              entryData.children = await buildTree(subPath);
+              entryData.children = await buildTree(fullPath);
             }
 
             result.push(entryData);
