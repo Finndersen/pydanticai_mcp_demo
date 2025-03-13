@@ -10,6 +10,7 @@ from rich.prompt import Prompt
 
 from mcp_agent.agent import get_agent
 from mcp_agent.deps import AgentDeps
+from mcp_agent.tools import get_tools
 
 EXIT_COMMANDS = ["/quit", "/exit", "/q"]
 
@@ -37,8 +38,10 @@ async def run(model: Model, working_directory: Path):
         async with ClientSession(read, write) as session:
             # Initialize the connection
             await session.initialize()
+            
+            tools = await get_tools(session)
 
-            agent = await get_agent(model=model, deps=deps, session=session)
+            agent = await get_agent(model=model, deps=deps, tools=tools)
 
             message_history: list[ModelMessage] = []
             while True:

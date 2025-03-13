@@ -1,15 +1,13 @@
 from pathlib import Path
 
-from mcp import ClientSession
 from pydantic_ai import Agent
 from pydantic_ai.models import Model
+from pydantic_ai import Tool
 
 from mcp_agent.deps import AgentDeps
-from mcp_agent.tools import get_tools
 
 
-async def get_agent(model: Model, deps: AgentDeps, session: ClientSession) -> Agent[AgentDeps]:
-    tools = await get_tools(session)
+async def get_agent(model: Model, deps: AgentDeps, tools: list[Tool[AgentDeps]]) -> Agent[AgentDeps]:
     prompt = get_system_prompt(deps.current_working_directory)
     agent = Agent(
         model=model,
