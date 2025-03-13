@@ -7,20 +7,16 @@ compile:
 
 # Install development dependencies from lockfile
 install:
+	uv venv --python 3.11
 	uv pip install -r requirements-dev.txt
-	uv pip install -e .
 	cd server && npm install
 
 # Run linting checks for agent client
 lint:
-	ruff check client
-	ruff format client --check
+	ruff check client --fix
+	ruff format client
 	python -m pyright
 
-# Format code for agent client
-format:
-	ruff format client
-	ruff check client --fix
 
 run:
 	@PYTHONPATH=${PYTHONPATH}:${PWD}/client && python client/mcp_agent/cli.py

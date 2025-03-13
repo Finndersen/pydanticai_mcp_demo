@@ -1,19 +1,33 @@
-# Your Project Name
+# AI Agent with MCP Demo
 
-A brief description of what your project does and who it's for.
+This is a demonstration of how to use [Model Context Protocol (MCP)](https://www.anthropic.com/news/model-context-protocol) to add capabilties to a [Pydantic AI](https://ai.pydantic.dev/) Agent. 
+Currently the framework does not natively support MCP or even directly specifying tool definition schemas, so it's not so straightforward.
+
+The agent will be provided tools for interacting with the filesystem, via an MCP server based on the official reference implementation [here](https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem). 
+
+## Requirements
+
+- [uv](https://docs.astral.sh/uv/)
+- [node.js](https://nodejs.org/en/download)
 
 ## Installation
 
-Instructions on how to install and set up your project.
+Clone this repo then run:
+
+```bash
+make install
+```
 
 ## Usage
 
-Examples of how to use your project.
+Coonfigure your `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` or `GEMINI_API_KEY`, then run the interactive CLI:
 
-## Contributing
+```bash
+make run
+```
 
-Guidelines for contributing to your project.
-
-## License
-
-Information about the project's license.
+Tell the agent what you would like it to do! It will have access to the following tools:
+- read file(s)
+- write/edit/move files
+- create & list directories
+- search files
