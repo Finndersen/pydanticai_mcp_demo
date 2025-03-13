@@ -8,7 +8,6 @@ from mcp.types import TextContent
 from pydantic_ai import RunContext, Tool
 
 from mcp_agent.deps import AgentDeps
-from mcp_agent.util.filter_ignored_files import filter_directory_tree, filter_search_results
 from mcp_agent.util.schema_to_params import convert_schema_to_params
 
 
@@ -49,9 +48,6 @@ def create_function_from_schema(session: ClientSession, name: str, schema: Dict[
 
     # Create function body
     async def function_body(ctx: RunContext[AgentDeps], **kwargs) -> str:
-        if name == "search_files":
-            kwargs["excludePatterns"] = kwargs.get("excludePatterns", []) + [".venv", ".git"]
-            
         ctx.deps.console.print(f"[blue]Calling tool[/blue] [bold]{name}[/bold] with arguments: {kwargs}")
 
         # Call the MCP tool with provided arguments
@@ -61,9 +57,6 @@ def create_function_from_schema(session: ClientSession, name: str, schema: Dict[
             ctx.deps.console.print(f"[red]Tool {name} returned an error:[/red]")
         else:
             ctx.deps.console.print(f"[green]Tool[/green] [bold]{name}[/bold] returned:")
-            # Filter the result if the tool is directory_tree
-            if name == "search_files":
-                result = filter_search_results(result)
 
         ctx.deps.console.print(result)
         # Return text for TextContent

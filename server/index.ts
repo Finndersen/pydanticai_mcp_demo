@@ -231,10 +231,18 @@ async function searchFiles(
 ): Promise<string[]> {
   const results: string[] = [];
 
+  // Load gitignore patterns for this directory
+  const { ig, repoRoot } = await loadGitignorePatterns(rootPath);
+
   async function search(currentPath: string) {
     const entries = await fs.readdir(currentPath, { withFileTypes: true });
 
     for (const entry of entries) {
+      // Skip .git directory
+      if (entry.name === '.git') {
+        continue;
+      }
+
       const fullPath = path.join(currentPath, entry.name);
 
       try {
@@ -249,6 +257,14 @@ async function searchFiles(
 
         if (shouldExclude) {
           continue;
+        }
+
+        // Check if the entry should be ignored based on gitignore patterns
+        if (ig && repoRoot) {
+          const relativeToRepo = path.relative(repoRoot, fullPath);
+          if (ig.ignores(relativeToRepo)) {
+            continue;
+          }
         }
 
         // Use glob matching for the search pattern as well
