@@ -5,6 +5,8 @@ Currently the framework does not natively support MCP or even directly specifyin
 
 The agent will be provided tools for interacting with the filesystem, via an MCP server based on the official reference implementation [here](https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem). 
 
+See the article [here](https://medium.com/@finndersen/how-to-use-mcp-tools-with-a-pydanticai-agent-0d3a09c93a51) for more context!
+
 ## Requirements
 
 - [uv](https://docs.astral.sh/uv/)
